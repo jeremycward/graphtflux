@@ -1,0 +1,34 @@
+ @Test
+    public void monoMania(){
+        //Flux<Message> inMono = Flux.pu
+        Message m1 = new Message("UserOne","plOne");
+        Message m2 = new Message("UserTwo","plTwo");
+        Flux<Message> inFlux = Flux.just(m1);
+        Flux<Message> scattered1 = inFlux.share();
+        Flux<Message> scattered2 = inFlux.share();
+
+
+
+
+        StepVerifier.create(scattered1)
+                .expectNext(m1)
+                .verifyComplete();
+
+        StepVerifier.create(scattered2)
+                .expectNext(m1)
+                .verifyComplete();
+
+
+
+
+        Flux<List<Message>> zipped =
+                Flux.zip(List.of(scattered1,scattered2),(inMsgs)-> Arrays.stream(inMsgs)
+                        .map(Message.class::cast)
+                        .collect(Collectors.toUnmodifiableList()));
+
+        StepVerifier.create(zipped)
+                .consumeNextWith((it)->{
+                    System.out.println(it);
+                })
+                .verifyComplete();
+    }
