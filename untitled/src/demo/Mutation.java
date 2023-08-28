@@ -1,2 +1,4 @@
-package demo;public interface Mutation {
+package demo;
+
+public interface Mutation {
 }

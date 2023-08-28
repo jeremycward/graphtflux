@@ -1,9 +1,8 @@
 package demo;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Stack;
-import java.util.UUID;
+import cellgraph.mutations.CellMutation;
+
+import java.util.*;
 
 abstract public class BaseCellImpl<T> implements Cell<T> {
     private Class<T> contentType;
@@ -38,6 +37,11 @@ abstract public class BaseCellImpl<T> implements Cell<T> {
         if (o == null || getClass() != o.getClass()) return false;
         BaseCellImpl<?> baseCell = (BaseCellImpl<?>) o;
         return id.equals(baseCell.id);
+    }
+    protected final CellMutation regenerate(T newValue ){
+        Optional<T> oldVal = generations.isEmpty() ? Optional.empty() : Optional.of(generations.peek());
+        generations.push(newValue);
+        return new CellMutation(this.id,oldVal,newValue);
     }
 
     @Override
