@@ -1,8 +1,10 @@
 package cellgraph;
 
 import cellgraph.mutations.MktDataCapture;
+import org.apache.commons.lang3.time.DurationUtils;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,8 @@ public class MarketCaptureGenerator {
     private final NormalDistribution normalDistribution = new NormalDistribution();
     private final Double initValue;
 
+    private final LocalDateTime startTime = LocalDateTime.now();
+
     public MarketCaptureGenerator(MktDataIdentifier mktDataIdentifier, Double initValue) {
         this.mktDataIdentifier = mktDataIdentifier;
         this.initValue = initValue;
@@ -29,7 +33,17 @@ public class MarketCaptureGenerator {
                 .map(this::getCapture).collect(Collectors.toUnmodifiableList());
 
     }
+
+    public int count() {
+        return values.size();
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
     private MktDataCapture getCapture(int count){
         return new MktDataCapture(mktDataIdentifier,values.peek(),LocalDateTime.now());
     }
+
 }

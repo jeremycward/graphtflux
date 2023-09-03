@@ -9,10 +9,6 @@ import java.util.stream.Collectors;
 
 public class MarketSegGenerator {
 
-
-
-
-
     private final Map<MktDataIdentifier,MarketCaptureGenerator> captureGeneratorMap;
     private final NormalDistribution normalDistribution = new NormalDistribution();
 

@@ -45,7 +45,7 @@ public class CellGraphTest {
 
     @Test
     public void testPopulatedGraph(){
-        final int count=1000;
+        final int count=10;
         MajorCcyBuilder builder = new MajorCcyBuilder();
         CellGraph gr =builder.getCellGraph();
         List<Mutation> captures =

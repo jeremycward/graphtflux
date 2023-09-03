@@ -38,5 +38,7 @@
     </orderEntry>
     <orderEntry type="library" name="mockito.all" level="project" />
     <orderEntry type="library" name="io.projectreactor.reactor.core" level="project" />
+    <orderEntry type="library" name="io.projectreactor.reactor.test" level="project" />
+    <orderEntry type="library" name="guicedee.services.commons.math3" level="project" />
   </component>
 </module>
