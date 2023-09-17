@@ -2,9 +2,11 @@ package cellgraph;
 
 import cellgraph.mutations.CellMutation;
 import cellgraph.mutations.MktDataCapture;
-import demo.*;
+import demo.Action;
+import demo.BaseCellImpl;
+import demo.Cell;
+import demo.Mutation;
 import org.jgrapht.traverse.BreadthFirstIterator;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -18,7 +20,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 
@@ -49,7 +50,7 @@ public class CellGraphTest {
     @Test
     public void testPopulatedGraph(){
         final int count=10;
-        MajorCcyBuilder builder = new MajorCcyBuilder();
+        MajorCcyGraph builder = MajorCcyGraph.aCcyGraph().build();
         CellGraph gr =builder.getCellGraph();
         List<Mutation> captures =
         builder.getMktSetGenerators().stream()
@@ -68,64 +69,45 @@ public class CellGraphTest {
                 .verifyComplete();
     }
     @Test
-    public void testGraphAfterFreeFlowPopulation()throws InterruptedException{
-        StepVerifier.setDefaultTimeout(Duration.ofMillis(1000));
+    public void testEmptyGraphWithOneUpdate(){
 
-        MajorCcyBuilder builder = new MajorCcyBuilder();
+        MajorCcyGraph builder = MajorCcyGraph.aCcyGraph()
+                .withCcys("USD").withLongTenors("1Y")
+                .withShortTenors("1D").build();
         CellGraph gr =builder.getCellGraph();
-
-
-        MarketCaptureFluxGenerator fl = MarketCaptureFluxGenerator.aBuilder().
-                withMarketData(new MktDataIdentifier("1D",Currency.getInstance("EUR")))
-                .withInterval(Duration.ofMillis(10))
-                .stoppingAfterCount(2).build();
-
-        CountDownLatch waitForComplete = new CountDownLatch(1);
-        Flux<Action> actionFlux = fl.getFlux()
-                .map(capture->new Action(List.of(capture)));
-
-       gr.connect(actionFlux).doOnNext((Action action)->{
-           waitForComplete.countDown();
-       });
-        fl.start();
-
- List<Action> received = new CopyOnWriteArrayList();
-
-
-
-
-       waitForComplete.await();
-
-
-
-//        StepVerifier.create(outputFlux)
-//                .expectNext()
-//                .expectNext()
-//                .verifyComplete();
-
-
-
-        assertEquals(2,fl.getSent().size());
-
-
-
-
-
-
-//        Cell inputCel = gr.findLinkPoints().getLeft();
-//
-//
-//
-//        Assert.assertEquals(true,gr.getGraph().containsVertex(inputCel));
-//        gr.getGraph().outgoingEdgesOf(inputCel).forEach((RelationshipEdge it)-> System.out.println(it.getTarget()));
-
-
+        Mutation mutation =  new MktDataCapture(new MktDataIdentifier("1Y",Currency.getInstance("USD")),2,LocalDateTime.now());
+        Flux<Action> actionList = Flux.just(new Action(List.of(mutation)));
+        Flux<Action> actions = gr.connect(actionList);
+        StepVerifier.create(actions)
+                .expectNextMatches(action->{
+                    if (action.getMutations().size()!=1) return false;
+                    CellMutation cellMutation = (CellMutation) action.getMutations().get(0);
+                    return cellMutation.getCellId().equals("USD_PRICING_CURVE");
+                }).expectComplete()
+                .verify();
 
     }
+    @Test
+    public void testEmptyGraphWithOneUpdateNoMutations(){
+
+        MajorCcyGraph builder = MajorCcyGraph.aCcyGraph()
+                .withCcys("USD").withLongTenors("1Y")
+                .withShortTenors("1D").build();
+        CellGraph gr =builder.getCellGraph();
+        Mutation mutation =  new MktDataCapture(new MktDataIdentifier("1Y",Currency.getInstance("JPY")),2,LocalDateTime.now());
+        Flux<Action> actionList = Flux.just(new Action(List.of(mutation)));
+        Flux<Action> actions = gr.connect(actionList);
+        StepVerifier.create(actions)
+                .expectNextMatches(action->{
+                    return action.getMutations().size()==0;
+                })
+                .verifyComplete();
+    }
+
 
     @Test
     public void testBasicCurveGraph(){
-        MajorCcyBuilder builder = new MajorCcyBuilder();
+        MajorCcyGraph builder = new MajorCcyGraph.Builder().build();
         CellGraph gr =builder.getCellGraph();
 
         MktDataIdentifier mktDataIdentifier = new MktDataIdentifier("6M",Currency.getInstance("EUR"));
@@ -182,8 +164,6 @@ public class CellGraphTest {
             Cell<String> next = iterator.next();
             System.out.println(next.getId() +" " + gr.getGraph().incomingEdgesOf(next).size() );
         }
-
-
     }
 
 
