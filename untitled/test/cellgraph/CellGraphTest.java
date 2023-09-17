@@ -14,6 +14,8 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -66,7 +68,8 @@ public class CellGraphTest {
                 .verifyComplete();
     }
     @Test
-    public void testGraphAfterFreeFlowPopulation(){
+    public void testGraphAfterFreeFlowPopulation()throws InterruptedException{
+        StepVerifier.setDefaultTimeout(Duration.ofMillis(1000));
 
         MajorCcyBuilder builder = new MajorCcyBuilder();
         CellGraph gr =builder.getCellGraph();
@@ -75,18 +78,34 @@ public class CellGraphTest {
         MarketCaptureFluxGenerator fl = MarketCaptureFluxGenerator.aBuilder().
                 withMarketData(new MktDataIdentifier("1D",Currency.getInstance("EUR")))
                 .withInterval(Duration.ofMillis(10))
-                .stoppingAfterCount(0).build();
-        fl.start();
+                .stoppingAfterCount(2).build();
 
+        CountDownLatch waitForComplete = new CountDownLatch(1);
         Flux<Action> actionFlux = fl.getFlux()
                 .map(capture->new Action(List.of(capture)));
 
-        Flux<Action> outputFlux = gr.connect(actionFlux);
-        StepVerifier.create(outputFlux)
-                .verifyComplete();
+       gr.connect(actionFlux).doOnNext((Action action)->{
+           waitForComplete.countDown();
+       });
+        fl.start();
+
+ List<Action> received = new CopyOnWriteArrayList();
 
 
-       //assertEquals(1,fl.getSent().size());
+
+
+       waitForComplete.await();
+
+
+
+//        StepVerifier.create(outputFlux)
+//                .expectNext()
+//                .expectNext()
+//                .verifyComplete();
+
+
+
+        assertEquals(2,fl.getSent().size());
 
 
 
