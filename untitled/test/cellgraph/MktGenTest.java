@@ -15,8 +15,8 @@ import java.util.Currency;
 public class MktGenTest {
     @Test
     public void testWithCountLimit(){
-        MarketCaptureFlux fl =
-        MarketCaptureFlux.aBuilder()
+        MarketCaptureFluxGenerator fl =
+        MarketCaptureFluxGenerator.aBuilder()
                 .withMarketData(new MktDataIdentifier("3M",Currency.getInstance("EUR")))
                 .withInterval(Duration.ofMillis(5))
                 .stoppingAfterCount(22).build();
@@ -28,8 +28,8 @@ public class MktGenTest {
     }
     @Test
     public void testWithDurationLimit(){
-        MarketCaptureFlux fl =
-                MarketCaptureFlux.aBuilder()
+        MarketCaptureFluxGenerator fl =
+                MarketCaptureFluxGenerator.aBuilder()
                         .withMarketData(new MktDataIdentifier("3M",Currency.getInstance("EUR")))
                         .withInterval(Duration.ofMillis(100))
                           .stoppingAfterDurationOf(Duration.ofSeconds(1)).build();

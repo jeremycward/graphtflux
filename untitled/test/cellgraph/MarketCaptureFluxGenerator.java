@@ -7,12 +7,12 @@ import reactor.core.publisher.Sinks;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Predicate;
 
-public class MarketCaptureFlux {
+public class MarketCaptureFluxGenerator {
 
     private final Duration interval;
 
@@ -22,12 +22,14 @@ public class MarketCaptureFlux {
 
     private final MarketCaptureGenerator marketCaptureGenerator;
     private final Flux<MktDataCapture> flux;
-    private final Sinks.Many<MktDataCapture> mktCaptures = Sinks.many().unicast().onBackpressureBuffer();
+    private final Sinks.Many<MktDataCapture> mktCaptures = Sinks.many().multicast().onBackpressureBuffer();
 
     private volatile boolean completed = false;
 
+    private final List<MktDataCapture> sent = new ArrayList<>();
 
-    private MarketCaptureFlux(MarketCaptureGenerator marketCaptureGenerator, Predicate<Pair<Duration, Integer>> stopCondition,Duration interval) {
+
+    private MarketCaptureFluxGenerator(MarketCaptureGenerator marketCaptureGenerator, Predicate<Pair<Duration, Integer>> stopCondition, Duration interval) {
         this.interval = interval;
         this.marketCaptureGenerator = marketCaptureGenerator;
         this.flux = mktCaptures.asFlux();
@@ -52,6 +54,7 @@ public class MarketCaptureFlux {
                     } else {
                         List<MktDataCapture> capture = marketCaptureGenerator.next(1);
                         capture.stream().forEach(capt -> {
+                            sent.add(capt);
                             mktCaptures.tryEmitNext(capt);
                         });
                     }
@@ -71,6 +74,10 @@ public class MarketCaptureFlux {
         return new FluxCaptureBuilder();
     }
 
+    public List<MktDataCapture> getSent() {
+        return sent;
+    }
+
     public static class FluxCaptureBuilder {
         private MktDataIdentifier id = null;
         private double initValue = 1.0;
@@ -79,9 +86,9 @@ public class MarketCaptureFlux {
         private Duration interval = Duration.ofMillis(100);
 
 
-        public MarketCaptureFlux build() {
+        public MarketCaptureFluxGenerator build() {
             MarketCaptureGenerator generator = new MarketCaptureGenerator(id, initValue);
-            return new MarketCaptureFlux(generator, stopCondition,interval);
+            return new MarketCaptureFluxGenerator(generator, stopCondition,interval);
         }
 
         public FluxCaptureBuilder withMarketData(MktDataIdentifier id) {

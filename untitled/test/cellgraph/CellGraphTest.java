@@ -2,10 +2,7 @@ package cellgraph;
 
 import cellgraph.mutations.CellMutation;
 import cellgraph.mutations.MktDataCapture;
-import demo.Action;
-import demo.BaseCellImpl;
-import demo.Cell;
-import demo.Mutation;
+import demo.*;
 import org.jgrapht.traverse.BreadthFirstIterator;
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,9 +11,13 @@ import org.mockito.runners.MockitoJUnitRunner;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -52,17 +53,55 @@ public class CellGraphTest {
         builder.getMktSetGenerators().stream()
                 .map(gen->gen.next(count))
                 .flatMap(Collection::stream).collect(Collectors.toUnmodifiableList());
-        Assert.assertEquals((40* count),captures.size());
+        assertEquals((40* count),captures.size());
 
         Action act = new Action(captures);
         Flux<Action> fl = gr.connect(Flux.just(act));
 
         StepVerifier.create(fl)
                 .assertNext(action-> {
-                    Assert.assertEquals(5,action.getMutations().size());
+                    assertEquals(5,action.getMutations().size());
 
                 } )
                 .verifyComplete();
+    }
+    @Test
+    public void testGraphAfterFreeFlowPopulation(){
+
+        MajorCcyBuilder builder = new MajorCcyBuilder();
+        CellGraph gr =builder.getCellGraph();
+
+
+        MarketCaptureFluxGenerator fl = MarketCaptureFluxGenerator.aBuilder().
+                withMarketData(new MktDataIdentifier("1D",Currency.getInstance("EUR")))
+                .withInterval(Duration.ofMillis(10))
+                .stoppingAfterCount(0).build();
+        fl.start();
+
+        Flux<Action> actionFlux = fl.getFlux()
+                .map(capture->new Action(List.of(capture)));
+
+        Flux<Action> outputFlux = gr.connect(actionFlux);
+        StepVerifier.create(outputFlux)
+                .verifyComplete();
+
+
+       //assertEquals(1,fl.getSent().size());
+
+
+
+
+
+
+//        Cell inputCel = gr.findLinkPoints().getLeft();
+//
+//
+//
+//        Assert.assertEquals(true,gr.getGraph().containsVertex(inputCel));
+//        gr.getGraph().outgoingEdgesOf(inputCel).forEach((RelationshipEdge it)-> System.out.println(it.getTarget()));
+
+
+
     }
 
     @Test
@@ -77,14 +116,14 @@ public class CellGraphTest {
 
         StepVerifier.create(fl)
                 .assertNext(action-> {
-                    Assert.assertEquals(1,action.getMutations().size());
+                    assertEquals(1,action.getMutations().size());
                     CellMutation mutation =
                     action.getMutations().stream()
                             .filter(CellMutation.class::isInstance)
                             .map(CellMutation.class :: cast)
                             .findFirst().get();
 
-                    Assert.assertEquals("EUR_PRICING_CURVE",mutation.getCellId());
+                    assertEquals("EUR_PRICING_CURVE",mutation.getCellId());
 
                 } )
                 .verifyComplete();

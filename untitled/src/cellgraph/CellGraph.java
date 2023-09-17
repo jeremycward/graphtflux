@@ -30,7 +30,7 @@ public class CellGraph {
         feeders.stream().forEach(feeder -> graph.addEdge(feeder, newCell, new RelationshipEdge(UUID.randomUUID().toString())));
     }
 
-    private Pair<Cell, Cell> findLinkPoints() {
+    public Pair<Cell, Cell> findLinkPoints() {
         List<Cell> inputNodes = graph.vertexSet().stream().filter(this::isBaseCell).collect(Collectors.toUnmodifiableList());
         List<Cell> outputNode = graph.vertexSet().stream().filter(this::isLeafCell).collect(Collectors.toUnmodifiableList());
         if (inputNodes.size() == 1 && outputNode.size() == 1) {
